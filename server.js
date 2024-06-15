@@ -35,7 +35,7 @@ app.get('/api/movies/search', (req, res) => {
   let query = `
     SELECT 
       Movies.*,
-      COALESCE(Movies.company, '') as productionCompany
+      IFNULL(Movies.company, '') as productionCompany
     FROM Movies
     WHERE 1=1
   `;
