@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Search</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .sort-order {
+            float: right;
+            margin-bottom: 10px;
+        }
+        .more-filters {
+            display: none;
+        }
+        table th, table td {
+            white-space: nowrap; /* 줄 바꿈 방지 */
+        }
+        table th {
+            width: auto;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+        }
+        .form-group label {
+            flex: 0 0 100px;
+            margin-right: 10px;
+        }
+        .form-group input, .form-group select {
+            flex: 1;
+        }
+        .filter-group span {
+            margin: 0 10px;
+        }
+        .movie-count {
+            float: left;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Movie Search</h1>
+        <form id="searchForm" class="mb-4">
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label for="movieName">영화명</label>
+                    <input type="text" class="form-control" id="movieName" name="movieName">
+                </div>
+                <div class="form-group col-md-6 filter-group">
+                    <label for="productionYearFrom">제작연도</label>
+                    <input type="number" class="form-control" id="productionYearFrom" name="productionYearFrom" placeholder="시작 연도">
+                    <span>~</span>
+                    <input type="number" class="form-control" id="productionYearTo" name="productionYearTo" placeholder="끝 연도">
+                </div>
+                <div class="form-group col-md-3">
+                    <label for="directorName">감독명</label>
+                    <input type="text" class="form-control" id="directorName" name="directorName">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">조회</button>
+            <button type="reset" class="btn btn-secondary">초기화</button>
+        </form>
+        <div class="movie-count">
+            <span id="movieCount">총 0건의 영화가 있습니다.</span>
+        </div>
+        <div class="sort-order">
+            <label for="sortOrder">정렬 기준</label>
+            <select class="form-control" id="sortOrder" name="sortOrder" style="width: auto; display: inline-block;">
+                <option value="Movies.enter_date">최신업데이트순</option>
+                <option value="Movies.year DESC">제작연도순</option>
+                <option value="Movies.title">영화명순(ㄱ~Z)</option>
+            </select>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">영화명</th>
+                    <th scope="col">영화명(영문)</th>
+                    <th scope="col">제작연도</th>
+                    <th scope="col">제작국가</th>
+                    <th scope="col">유형</th>
+                    <th scope="col">장르</th>
+                    <th scope="col">제작상태</th>
+                    <th scope="col">감독</th>
+                    <th scope="col">제작사</th>
+                </tr>
+            </thead>
+            <tbody id="movieTableBody">
+                <!-- Add movie rows dynamically -->
+            </tbody>
+        </table>
+        
+        <nav aria-label="Page navigation" class="pagination-container" style="display: none;">
+            <ul class="pagination">
+                <!-- Pagination items will be added dynamically -->
+            </ul>
+        </nav>
+
+        
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            function loadMovies(page = 1) {
+                console.log("Loading movies for page:", page);
+                var formData = {
+                    movieName: $('#movieName').val(),
+                    productionYearFrom: $('#productionYearFrom').val() !== '' ? $('#productionYearFrom').val() : '',
+                    productionYearTo: $('#productionYearTo').val() !== '' ? $('#productionYearTo').val() : '',
+                    directorName: $('#directorName').val(),
+                    sortOrder: $('#sortOrder').val(),
+                    page: page
+                };
+
+                console.log("Form data:", formData);
+
+                $.ajax({
+                    url: '/api/movies/search',
+                    method: 'GET',
+                    data: formData,
+                    success: function(data) {
+                        console.log("Data received:", data);
+                        var tableBody = $('#movieTableBody');
+                        tableBody.empty();
+
+                        if (data.movies && data.movies.length > 0) {
+                            data.movies.forEach(function(movie) {
+                                if (!movie.title) return; // Skip if movie title is missing
+                                var row = `<tr>
+                                    <td>${movie.title || ''}</td>
+                                    <td>${movie.eng_title || ''}</td>
+                                    <td>${movie.year || ''}</td>
+                                    <td>${movie.country || ''}</td>
+                                    <td>${movie.m_type || ''}</td>
+                                    <td>${movie.genre || ''}</td>
+                                    <td>${movie.status || ''}</td>
+                                    <td>${movie.director || ''}</td>
+                                    <td>${movie.productionCompany || ''}</td>
+                                </tr>`;
+                                tableBody.append(row);
+                            });
+
+                            // Update pagination
+                            var paginationContainer = $('.pagination-container');
+                            var pagination = $('.pagination');
+                            pagination.empty();
+                            const totalPages = data.totalPages;
+                            const currentPage = data.currentPage;
+                            const maxPagesToShow = 10;
+                            const currentPageGroup = Math.ceil(currentPage / maxPagesToShow);
+
+                            if (totalPages > 1) {
+                                paginationContainer.show();
+
+                                // Add First and Previous button
+                                if (currentPage > 1) {
+                                    pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="1">«</a></li>`);
+                                    pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="${Math.max(1, (currentPageGroup - 1) * maxPagesToShow)}">‹</a></li>`);
+                                }
+
+                                // Add page numbers
+                                let startPage = (currentPageGroup - 1) * maxPagesToShow + 1;
+                                let endPage = Math.min(startPage + maxPagesToShow - 1, totalPages);
+
+                                for (let i = startPage; i <= endPage; i++) {
+                                    pagination.append(`<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+                                }
+
+                                // Add Next and Last button
+                                if (currentPage < totalPages) {
+                                    pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="${Math.min(totalPages, currentPageGroup * maxPagesToShow + 1)}">›</a></li>`);
+                                    pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">»</a></li>`);
+                                }
+                            } else {
+                                paginationContainer.hide();
+                            }
+                        } else {
+                            var row = `<tr><td colspan="9" class="text-center">No movies found</td></tr>`;
+                            tableBody.append(row);
+                            $('.pagination-container').hide();
+                        }
+
+                        // Update movie count
+                        $('#movieCount').text(`총 ${data.totalItems}건의 영화가 있습니다.`);
+                    },
+                    error: function(err) {
+                        console.error('Error fetching movies:', err);
+                    }
+                });
+            }
+
+            $('#searchForm').on('submit', function(event) {
+                event.preventDefault();
+                loadMovies();
+            });
+
+            $('#sortOrder').on('change', function() {
+                loadMovies();
+            });
+
+            $(document).on('click', '.pagination a', function(event) {
+                event.preventDefault();
+                var page = $(this).data('page');
+                loadMovies(parseInt(page));
+            });
+
+            // Initial load
+            loadMovies();
+        });
+    </script>
+</body>
+</html>

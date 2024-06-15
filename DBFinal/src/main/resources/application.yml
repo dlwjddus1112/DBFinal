@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: DBFinal
+  datasource:
+    url: jdbc:mysql://localhost:3306/movieDB
+    username: idwjddus
+    password: Dlwjddus123@
