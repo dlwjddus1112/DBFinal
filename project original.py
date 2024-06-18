@@ -11,10 +11,11 @@ def read_excel_into_mysql():
         df_tab2 = pd.read_excel(excel_file, sheet_name='movie2', header=None)
         print("Opening database connection...")
         conn, cur = open_db()
-        print("Concatenating data from both sheets...")
+        
         df_tab1 = df_tab1.replace({np.nan: None})
-        df_tab2 = df_tab2.replace({np.nan: None})
+        df_tab2 = df_tab2.replace({np.nn: None})
         dfs = [df_tab1,df_tab2]
+        print("Concatenating data from both sheets...")
 
         movie_table = "movieDB.Movies"
         genre_table = "movieDB.Genres"
@@ -77,7 +78,7 @@ def read_excel_into_mysql():
         select_last_movie_id_sql = f"""select max(movie_id) as id from {movie_table};"""
         select_last_director_id_sql = f"""select max(director_id) as id from {director_table};"""        
         movies_data = []
-        directors_data = []  # Using list to avoid duplicate directors
+        directors_data = []  
         genres_data = []
        
 

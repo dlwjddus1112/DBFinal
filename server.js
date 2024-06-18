@@ -34,8 +34,7 @@ app.get('/api/movies/search', (req, res) => {
 
   let query = `
     SELECT 
-      Movies.*,
-      IFNULL(Movies.company, '') as productionCompany
+      Movies.*
     FROM Movies
     WHERE 1=1
   `;
