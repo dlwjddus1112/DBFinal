@@ -14,7 +14,7 @@
             display: none;
         }
         table th, table td {
-            white-space: nowrap; /* 줄 바꿈 방지 */
+            white-space: nowrap;
         }
         table th {
             width: auto;
@@ -68,9 +68,9 @@
         <div class="sort-order">
             <label for="sortOrder">정렬 기준</label>
             <select class="form-control" id="sortOrder" name="sortOrder" style="width: auto; display: inline-block;">
-                <option value="Movies.enter_date">최신업데이트순</option>
-                <option value="Movies.year DESC">제작연도순</option>
-                <option value="Movies.title">영화명순(ㄱ~Z)</option>
+                <option value="--선택--">--선택--</option>
+                <option value="m.year DESC">제작연도순</option>
+                <option value="m.title">영화명순(ㄱ~Z)</option>
             </select>
         </div>
 
@@ -98,8 +98,6 @@
                 <!-- Pagination items will be added dynamically -->
             </ul>
         </nav>
-
-        
     </div>
 
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
@@ -136,9 +134,9 @@
                                     <td>${movie.year || ''}</td>
                                     <td>${movie.country || ''}</td>
                                     <td>${movie.m_type || ''}</td>
-                                    <td>${movie.genre || ''}</td>
+                                    <td>${movie.genre_name || ''}</td>
                                     <td>${movie.status || ''}</td>
-                                    <td>${movie.director || ''}</td>
+                                    <td>${movie.director_name || ''}</td>
                                     <td>${movie.company || ''}</td>
                                 </tr>`;
                                 tableBody.append(row);

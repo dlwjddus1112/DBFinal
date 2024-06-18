@@ -13,8 +13,8 @@ def read_excel_into_mysql():
         conn, cur = open_db()
         
         df_tab1 = df_tab1.replace({np.nan: None})
-        df_tab2 = df_tab2.replace({np.nn: None})
-        dfs = [df_tab1,df_tab2]
+        df_tab2 = df_tab2.replace({np.nan: None})
+        dfs = [df_tab1, df_tab2]
         print("Concatenating data from both sheets...")
 
         movie_table = "movieDB.Movies"
@@ -38,21 +38,17 @@ def read_excel_into_mysql():
                 year INT,
                 country VARCHAR(100),
                 m_type VARCHAR(10),
-                genre VARCHAR(100),
                 status VARCHAR(30),
-                director VARCHAR(255),
-                company VARCHAR(255),
-                enter_date DATETIME DEFAULT NOW()
+                company VARCHAR(255)
             );
             CREATE TABLE {genre_table}(
                 movie_id INT,
-                genre_name VARCHAR(255) NOT NULL,
+                genre_name VARCHAR(255),
                 FOREIGN KEY (movie_id) REFERENCES {movie_table}(movie_id) ON DELETE CASCADE
             );
             CREATE TABLE {director_table}(
                 director_id INT AUTO_INCREMENT PRIMARY KEY,
-                director_name VARCHAR(255) NOT NULL
-               
+                director_name VARCHAR(255)
             );
             CREATE TABLE {moviedirector_table}(
                 movie_id INT,
@@ -60,35 +56,35 @@ def read_excel_into_mysql():
                 FOREIGN KEY (movie_id) REFERENCES {movie_table}(movie_id) ON DELETE CASCADE,
                 FOREIGN KEY (director_id) REFERENCES {director_table}(director_id) ON DELETE CASCADE
             );
-             create index idx_movie_id on {genre_table}(movie_id);
-             create index idx_year on {movie_table}(year);
-             create fulltext index idx_title on {movie_table}(title);
-             create fulltext index idx_name on {director_table}(director_name);
+            CREATE INDEX idx_movie_id ON {genre_table}(movie_id);
+            CREATE INDEX idx_year ON {movie_table}(year);
+            CREATE FULLTEXT INDEX idx_title ON {movie_table}(title);
+            CREATE FULLTEXT INDEX idx_name ON {director_table}(director_name);
         """
         print("Creating tables...")
         cur.execute(create_sql)
         conn.commit()
 
-        movie_insert = f"""INSERT INTO {movie_table} (title, eng_title, year, country, m_type, genre, status, director, company)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);"""
-        director_insert = f"""INSERT INTO {director_table} (director_name) VALUES (%s) 
+        movie_insert = f"""INSERT INTO {movie_table} (title, eng_title, year, country, m_type, status, company)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s);"""
+        director_insert = f"""INSERT INTO {director_table} (director_name) VALUES (%s)
                               ON DUPLICATE KEY UPDATE director_name=director_name;"""
         genre_insert = f"""INSERT INTO {genre_table} (movie_id, genre_name) VALUES (%s, %s);"""
         moviedirector_insert = f"""INSERT INTO {moviedirector_table} (movie_id, director_id) VALUES (%s, %s);"""
-        select_last_movie_id_sql = f"""select max(movie_id) as id from {movie_table};"""
-        select_last_director_id_sql = f"""select max(director_id) as id from {director_table};"""        
+        select_last_movie_id_sql = f"""SELECT MAX(movie_id) AS id FROM {movie_table};"""
+        select_last_director_id_sql = f"""SELECT MAX(director_id) AS id FROM {director_table};"""
+        
         movies_data = []
-        directors_data = []  
+        directors_data = []
         genres_data = []
-       
 
         print("Processing rows...")
-        for df in dfs :
+        for df in dfs:
             for i, r in df.iterrows():
                 row = tuple(r)
                 title = row[0]
                 eng_title = row[1]
-                year = (row[2]) 
+                year = row[2]
                 country = row[3]
                 m_type = row[4]
                 genre = row[5]
@@ -97,11 +93,8 @@ def read_excel_into_mysql():
                 company = row[8]
 
                 # Insert movie data
-                movies_data.append((title, eng_title, year, country, m_type, genre, status, director, company))
-
-                
+                movies_data.append((title, eng_title, year, country, m_type, status, company))
                 directors_data.append(director)
-                
                 genres_data.append(genre)
 
         try:
@@ -113,61 +106,41 @@ def read_excel_into_mysql():
             last_movie_id = cur.fetchone()["id"]
             first_movie_id = last_movie_id - len(movies_data) + 1
 
-            genre_inserts = []
             for movie_id in range(first_movie_id, last_movie_id + 1):
                 row_index = movie_id - first_movie_id
                 if genres_data[row_index]:
-                    for genre_name in genres_data[row_index].split(','):
-                        genre_inserts.append((movie_id, genre_name.strip()))
-
+                    genres_data[row_index] = (movie_id, genres_data[row_index])
+                else:
+                    genres_data[row_index] = None
+            genres_data = [x for x in genres_data if x is not None]
+            
             print("Inserting genres...")
-            if genre_inserts:
-                cur.executemany(genre_insert, genre_inserts)
+            if genres_data:
+                cur.executemany(genre_insert, genres_data)
                 conn.commit()
             else:
                 print("No genre data to insert.")
 
+            print("Inserting directors...")
             unique_directors = set()
             for directors in directors_data:
-                if directors is None:
-                    continue
-                for director in directors.split(","):
-                    unique_directors.add(director.strip())
+                if directors:
+                    for director in directors.split(","):
+                        unique_directors.add(director.strip())
             unique_directors = list(unique_directors)
-           
-
-            print("Inserting directors...")
-            cur.executemany(director_insert,unique_directors)
+            cur.executemany(director_insert, [(director,) for director in unique_directors])
             conn.commit()
             print("Director insert complete")
-            cur.execute(select_last_director_id_sql)
-            last_director_id = cur.fetchone()["id"] # director_id 중 가장 큰 값. 마지막 director_id ex) 10000
-            first_director_id = last_director_id - len(unique_directors) + 1 # 10000 - 10000 + 1 하면 첫번째 director_id
-            print("complete.")
-            director_id_map = {}
-            for director_id in range(first_director_id, last_director_id + 1): # range(1,10001) 1 ~ 10000
-                row_index = director_id - first_director_id # row_index = 1 - 1 = 0, 2-1 = 1, 이런식으로 증가
-                director_id_map[unique_directors[row_index]] = director_id 
-            print("complete.")
+
+            print("Inserting movie-director relations...")
             movie_director_data = []
             for movie_id in range(first_movie_id, last_movie_id + 1):
                 row_index = movie_id - first_movie_id
-               
-                if directors_data[row_index] is None:
-                    continue
-                for director in directors_data[row_index].split(","):
-                    director = director.strip()
-                    if director in director_id_map:
-                        movie_director_data.append((movie_id, director_id_map[director]))
-                    else:
-                        print(f"Director '{director}' not found in director_id_map.")
-            print(len(movie_director_data))
-            print("complete.")
-            print("Inserting movie-director relations...")
-            
+                if directors_data[row_index]:
+                    movie_director_data.append((movie_id, directors_data[row_index]))
             cur.executemany(moviedirector_insert, movie_director_data)
             conn.commit()
-            
+            print("Movie-director relations insert complete")
 
         except Exception as e:
             print(f"Error during data insertion: {e}")

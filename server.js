@@ -33,24 +33,29 @@ app.get('/api/movies/search', (req, res) => {
   const offset = (page - 1) * itemsPerPage;
 
   let query = `
-    SELECT 
-      Movies.*
-    FROM Movies
+    SELECT m.movie_id, m.title, m.eng_title, m.year, m.country, m.m_type, m.status, m.company, g.genre_name AS genre, d.director_name
+    FROM movies m
+    LEFT JOIN movie_director md ON m.movie_id = md.movie_id
+    LEFT JOIN genres g ON m.movie_id = g.movie_id
+    LEFT JOIN directors d ON md.directors = d.director_id
     WHERE 1=1
   `;
 
-  if (movieName) query += ` AND Movies.title LIKE '%${movieName}%'`;
-  if (productionYearFrom) query += ` AND Movies.year >= ${productionYearFrom}`;
-  if (productionYearTo) query += ` AND Movies.year <= ${productionYearTo}`;
-  if (directorName) query += ` AND Movies.director LIKE '%${directorName}%'`;
-
-  if (sortOrder === 'Movies.title') {
-    query += ` AND Movies.title IS NOT NULL AND Movies.title != ''`;
-  }
+  if (movieName) query += ` AND m.title LIKE '%${movieName}%'`;
+  if (productionYearFrom) query += ` AND m.year >= ${productionYearFrom}`;
+  if (productionYearTo) query += ` AND m.year <= ${productionYearTo}`;
+  if (directorName) query += ` AND d.director_name LIKE '%${directorName}%'`;
 
   const countQuery = `SELECT COUNT(*) as count FROM (${query}) as total`;
 
-  query += ` ORDER BY ${sortOrder || 'Movies.enter_date DESC'} LIMIT ${itemsPerPage} OFFSET ${offset}`;
+  if (sortOrder && sortOrder !== '--선택--') {
+    query += ` ORDER BY ${sortOrder}`;
+  } else {
+    query += ` ORDER BY m.movie_id ASC`;
+  }
+
+  query += ` LIMIT ${itemsPerPage} OFFSET ${offset}`;
+
   console.log("Executing query: ", query);
 
   connection.query(countQuery, (countError, countResults) => {
