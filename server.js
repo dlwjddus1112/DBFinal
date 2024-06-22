@@ -36,7 +36,6 @@ app.get('/api/movies/search', (req, res) => {
     SELECT m.movie_id, m.title, m.eng_title, m.year, m.country, m.m_type, m.status, m.company, g.genre_name AS genre, md.director_ids
     FROM movies m
     LEFT JOIN movie_director md ON m.movie_id = md.movie_id
-    
     LEFT JOIN genres g ON m.movie_id = g.movie_id
     LEFT JOIN directors d ON md.director_ids = d.director_id
     

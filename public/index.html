@@ -41,7 +41,7 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">Movie Search</h1>
+        <h1 class="mb-4">영화 검색</h1>
         <form id="searchForm" class="mb-4">
             <div class="form-row">
                 <div class="form-group col-md-3">
@@ -60,7 +60,7 @@
                 </div>
             </div>
             <button type="submit" class="btn btn-primary">조회</button>
-            <button type="reset" class="btn btn-secondary">초기화</button>
+            <button type="reset" class="btn btn-secondary" id="resetButton">초기화</button>
         </form>
         <div class="movie-count">
             <span id="movieCount">총 0건의 영화가 있습니다.</span>
@@ -198,6 +198,12 @@
 
             $('#sortOrder').on('change', function() {
                 loadMovies();
+            });
+
+            $('#resetButton').on('click', function(event) {
+                event.preventDefault();
+                // 페이지를 새로고침하여 초기 상태로 돌아갑니다.
+                location.reload();
             });
 
             $(document).on('click', '.pagination a', function(event) {

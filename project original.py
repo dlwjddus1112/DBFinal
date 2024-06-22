@@ -59,6 +59,7 @@ def read_excel_into_mysql():
             );
             CREATE INDEX idx_movie_id ON {genre_table}(movie_id);
             CREATE INDEX idx_year ON {movie_table}(year);
+            CREATE INDEX idx_directorid_ ON {moviedirector_table}(director_ids);
             CREATE FULLTEXT INDEX idx_title ON {movie_table}(title);
             CREATE FULLTEXT INDEX idx_name ON {director_table}(director_name);
         """
@@ -133,7 +134,7 @@ def read_excel_into_mysql():
             unique_directors = list(unique_directors)
             cur.executemany(director_insert, [(director,) for director in unique_directors])
             conn.commit()
-            print("감독 삽입 완료")
+
             cur.execute(select_last_director_id_sql)
             last_director_id = cur.fetchone()["id"]
             first_director_id = last_director_id - len(unique_directors) + 1
@@ -145,7 +146,7 @@ def read_excel_into_mysql():
 
             
             print("영화-감독 관계를 삽입 중입니다...")
-            movie_director_data = {}  # 딕셔너리 사용
+            movie_director_data = {}  
             for movie_id in range(first_movie_id, last_movie_id + 1):
                 row_index = movie_id - first_movie_id
                 if directors_data[row_index] is None:
